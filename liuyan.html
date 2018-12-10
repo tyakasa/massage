@@ -1,0 +1,393 @@
+<!DOCTYPE html PUBLIC>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>记事本</title>
+    <link rel="stylesheet" type="text/css" href="css\style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+
+    <style>
+      .title {
+        color: wheat;
+      }
+      .error {
+        color: red;
+      }
+      .username {
+        color: red;
+        font-size: 30px;
+      }
+      .main {
+        width: 100%;
+        height: 100%;
+        background: url(images/bg3.jpg);
+        background-repeat: no-repeat;
+        background-size: cover;
+      }
+
+      div,
+      span {
+        white-space: normal;
+        word-break: break-all;
+        word-wrap: break-word;
+      }
+    </style>
+  </head>
+
+  <body class="main">
+    <h1 class="title">留言板</h1>
+    <h2 style=" text-align: center;" class="hiddenclass error"></h2>
+    <div class="hiddenclass">
+      <div class="myusername"></div>
+      <a type="button" class="logout btn btn-warning"> 注销</a>
+    </div>
+    <div id="content">
+      <div id="post">
+        <div>昵称：<span class="username"></span></div>
+        <div><textarea class="transition"></textarea></div>
+        <input
+          id="postBt" type="button" style="border:none; background-color:#3EADC5; color:white;border-radius:5px; width:80px; height:30px;" value="发表留言">
+        <input id="clearBt" type="button" style="border:none; background-color:#3EADC5; color:white;border-radius:5px; width:80px; height:30px;" value="清空留言">
+      </div>
+      <div id="comment"></div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="confirm-pub"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="myModalLabel2"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">修改留言</div>
+          <div class="modal-body">
+            <form id="form_data" role="form" class="form-horizontal">
+              <div class="form-group">
+                <label class="col-sm-2 control-label">留言内容</label>
+                <div class="col-sm-10">
+                  <textarea name="old_message" id="old_message" class="form-control"></textarea>
+                  <input type="hidden" value="" id="user_name">
+                  <input type="hidden" value="" id="comment_id">
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class=" btn btn-default cancel"  data-dismiss="modal">
+              取消
+            </button>
+            <a class="btn btn-danger btn-ok update_comement">确认</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdn.bootcss.com/twitter-bootstrap/4.1.3/js/bootstrap.min.js"></script>
+    <script>
+      var named = ''
+      var userid = 0
+
+      /*
+       function unescapeHTML 还原html脚本
+       */
+      function unescapeHTML(a) {
+        a = '' + a
+        return a
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&apos;/g, "'")
+      }
+      function replaceBr(a) {
+        a = '' + a
+        return a
+          .replace(/&lt;br[/]&gt;/g, '<br/>')
+      }
+
+      function delete1(id) {
+        $.ajax({
+          type: 'post',
+          url: 'deleteliuyan.php',
+          data: {
+            mid: id
+          },
+          dataType: 'json',
+          success: function(mydata) {
+            if (
+              mydata.errcode == 6 || mydata.errcode == 1 || mydata.errcode == 16 || mydata.errcode == 233 || mydata.errcode == 19
+            ) {
+              alert(mydata.errmsg)
+            } else if (mydata.errcode == 0) {
+              localStorage.removeItem(id)
+              Storage.writeData()
+            }
+          },
+          error: function(XMLHttpRequest, textStatus, errorThrown) {
+            alert('发现异常')
+          }
+        })
+      }
+
+      function update(id) {
+        var data = localStorage.getItem(id).split('|')
+				debugger
+				var message = unescapeHTML(data[0]).replace(/<[b|r|/]+>/g,"\n");
+        $('#old_message').val(message)
+        $('#user_name').val(data[1])
+        $('#comment_id').val(id)
+        $('#confirm-pub').modal('show')
+      }
+
+      $('.update_comement').click(function() {
+        let write_time = Storage.getDateTime()
+				let	content = document.getElementById("old_message").value
+				content = content.replace(/\n|\r\n/g,"<br/>");; 
+        $.ajax({
+          type: 'post',
+          url: 'updateliuyan.php',
+          data: {
+            mid: $('#comment_id').val(),
+            content: content,
+            write_time: write_time
+          },
+          dataType: 'json',
+          success: function(mydata) {
+            if (
+              mydata.errcode == 6 || mydata.errcode == 1 || mydata.errcode == 16 || mydata.errcode == 233 || mydata.errcode == 19
+            ) {
+              alert(mydata.errmsg)
+            } else if (mydata.errcode == 0) {
+              localStorage.setItem(
+                $('#comment_id').val(),
+                mydata.data.content +
+                  '|' +
+                  $('#user_name').val() +
+                  '|' +
+                  write_time +
+                  '|' +
+                  userid
+              )
+              Storage.writeData()
+              alert(mydata.errmsg)
+              $('#confirm-pub').modal('hide')
+            }
+          },
+          error: function(XMLHttpRequest, textStatus, errorThrown) {
+            alert('发现异常')
+          }
+        })
+      })
+
+      var Storage = {
+        saveData: function() {
+          var data = document.querySelector('#post textarea')
+					data.value = data.value.replace(/\n|\r\n/g,"<br/>"); 
+          if (data.value != '') {
+            var _this = this
+            if (named) {
+              $.ajax({
+                type: 'post',
+                url: 'liuyan.php',
+                data: {
+                  content: data.value,
+                  named: named,
+                  time: _this.getDateTime()
+                },
+                dataType: 'json',
+                success: function(mydata) {
+                  if (
+                    mydata.errcode == 6 || mydata.errcode == 1 || mydata.errcode == 16 || mydata.errcode == 233 || mydata.errcode == 19
+                  ) {
+                    alert(mydata.errmsg)
+                  } else if (mydata.errcode == 0) {
+                    localStorage.setItem(
+                      mydata.data.mid,
+                      mydata.data.content + '|' + named +  '|' +  _this.getDateTime() +  '|' + mydata.data.uid
+                    )
+                  }
+                  data.value = '' 
+                  _this.writeData()
+                },
+                error: function(XMLHttpRequest, textStatus, errorThrown) {
+                  alert('发现异常')
+                }
+              })
+            }
+          } else {
+            alert('请填写您的留言！')
+          }
+        },
+        writeData: function() {
+          var dataHtml = '',
+            data = ''
+          for (var i = localStorage.length - 1; i >= 0; i--) {
+            data = localStorage.getItem(localStorage.key(i)).split('|')
+            dataHtml +=
+              '<span style=>' +
+              data[1] +
+              '<span style="float:right">' +
+              data[2] +
+              '</span><p style="width:800px;"><span class="msg">' +
+								replaceBr(data[0])
+            if (data[3] == userid) {
+              dataHtml +=
+                '<input style="float:right;border:none;border-radius:5px;margin-right:10px;" id="clearBt" type="button" onclick="update(' +
+                localStorage.key(i) +
+                ');" value="修改"/>'
+              dataHtml +=
+                '<input style="float:right;border:none;border-radius:5px;  margin-right: 10px;" id="clearBt" type="button" onclick="delete1(' +
+                localStorage.key(i) +
+                ');" value="删除"/>'
+            }
+
+            dataHtml += '</span></p>'
+          }
+          document.getElementById('comment').innerHTML = dataHtml
+        },
+        clearData: function() {
+          if (localStorage.length > 0) {
+            if (window.confirm('清空后不可恢复，是否确认清空？')) {
+              $.ajax({
+                type: 'delete',
+                url: 'deleteliuyan.php',
+                data: {},
+                dataType: 'json',
+                success: function(mydata) {
+                  if (
+                    mydata.errcode == 6 || mydata.errcode == 1 || mydata.errcode == 16 || mydata.errcode ==233 || mydata.errcode ==19
+                  ) {
+                    alert(mydata.errmsg)
+                  } else if (mydata.errcode == 0) {
+                    localStorage.clear()
+                    Storage.writeData()
+                  }
+                },
+                error: function(XMLHttpRequest, textStatus, errorThrown) {
+                  alert('发现异常')
+                }
+              })
+
+              localStorage.clear()
+              this.writeData()
+            }
+          } else {
+            alert('没有需要清空的数据！')
+          }
+        },
+        getDateTime: function() {
+          var isZero = function(num) {
+            if (num < 10) {
+              num = '0' + num
+            }
+            return num
+          }
+
+          var d = new Date()
+          return (
+            d.getFullYear() + '-' + isZero(d.getMonth() + 1) +  isZero(d.getDate()) +  ' ' +  isZero(d.getHours()) + ':' +  isZero(d.getMinutes()) +  ':' +  isZero(d.getSeconds())
+          )
+        }
+      }
+
+      $(function() {
+        document.getElementById('postBt').onclick = function() {
+          Storage.saveData()
+        }
+        document.getElementById('clearBt').onclick = function() {
+          Storage.clearData()
+        }
+
+        $('.logout').click(function() {
+          $.ajax({
+            type: 'GET',
+            url: 'logout.php',
+            data: {},
+            dataType: 'json',
+            success: function(mydata) {
+              if (mydata.errcode == 1) {
+                $('.error').removeClass('hiddenclass')
+                $('.error').text('注销异常')
+              } else if (mydata.errcode == 0) {
+                $('.error').removeClass('hiddenclass')
+                window.location.href = 'login.html'
+              }
+            },
+            error: function(XMLHttpRequest, textStatus, errorThrown) {
+              alert('发现异常')
+            }
+          })
+        })
+
+        $.ajax({
+          type: 'GET',
+          url: 'check.php',
+          data: {},
+          dataType: 'json',
+          success: function(mydata) {
+            if (mydata.errcode == 1) {
+              $('.error').removeClass('hiddenclass')
+              $('.error').text('用户未登录跳转登陆页面')
+              $('.username').text('未登录')
+              setTimeout(function() {
+                window.location.href = 'login.html'
+              }, 2000)
+            } else if (mydata.errcode == 0) {
+              named = mydata.data.username
+              userid = mydata.data.id
+              $('.hiddenclass').removeClass('hiddenclass')
+              mydata.data.username = unescapeHTML(mydata.data.username)
+              $('.myusername').text(
+                '欢迎' + mydata.data.username + '来到该留言板'
+              )
+              $('.username').text(mydata.data.username)
+
+              $.ajax({
+                type: 'GET',
+                url: 'getallliuyans.php',
+                data: {},
+                dataType: 'json',
+                success: function(mydata) {
+                  if (mydata.errcode == 1) {
+                    alert(mydata.errmsg)
+                  } else if (mydata.errcode == 0) {
+                    localStorage.clear()
+
+                    for (
+                      let index = 0;
+                      index < mydata.data.list.length;
+                      index++
+                    ) {
+                      const element = mydata.data.list[index]
+                      localStorage.setItem(
+                        element.mid,
+                        element.content +
+                          '|' +
+                          element.write_name +
+                          '|' +
+                          element.write_time +
+                          '|' +
+                          element.uid
+                      )
+                    }
+
+                    Storage.writeData()
+                  }
+                },
+                error: function(XMLHttpRequest, textStatus, errorThrown) {
+                  alert('发现异常')
+                }
+              })
+            }
+          },
+          error: function(XMLHttpRequest, textStatus, errorThrown) {
+            alert('发现异常')
+          }
+        })
+      })
+    </script>
+  </body>
+</html>

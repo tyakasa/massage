@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="css\style.css" />
+    <link rel="stylesheet" type="text/css" href="css\loginAndRegister.css" />
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+  </head>
+
+  <body class="main">
+    <form>
+      <div>账号登陆</div>
+      <table>
+        <tr>
+          <td><span>用户名</span></td>
+          <td>
+            <input  type="text" id="username" name="username" placeholder="请输入用户名" required>
+          </td>
+        </tr>
+        <tr>
+          <td><span>登录密码</span></td>
+          <td>
+            <input type="password" id="password" name="password" placeholder="请输入密码" required>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <input type="button" onclick="log()" value="登陆" />
+          </td>
+        </tr>
+        <div class="return"></div>
+        <tr>
+          <a href="signup.html">前往注册</a>
+        </tr>
+      </table>
+    </form>
+
+    <script>
+      function log() {
+        var username = document.getElementById('username').value
+        var password = document.getElementById('password').value
+
+        $.ajax({
+          type: 'post',
+          url: 'login.php',
+          data: {
+            username: username,
+            password: password
+          },
+          dataType: 'json',
+          success: function(mydata) {
+            if (
+              mydata.errcode == 6 || mydata.errcode == 1 || mydata.errcode == 16 || mydata.errcode == 233
+            ) {
+              alert(mydata.errmsg)
+            } else if (mydata.errcode == 0) {
+              var text ='<p>登录成功！ 这是你的第 ' + mydata.data.number_of_times + ' 次登录</p>' + '<p>最近一次登录在 ' + mydata.data.last_login_time + '</p>' +
+                '<p style=" text-align: center;color:red">3s跳转留言页面 </p>'
+                
+              $('.return').html(text)
+              setTimeout(function() {
+                window.location.href = 'liuyan.html'
+              }, 3000)
+            }
+          },
+          error: function(XMLHttpRequest, textStatus, errorThrown) {
+            alert('发现异常')
+          }
+        })
+      }
+    </script>
+  </body>
+</html>

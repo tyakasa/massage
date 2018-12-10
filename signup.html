@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>注册</title>
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="css\style.css">
+    <link rel="stylesheet" type="text/css" href="css\loginAndRegister.css">
+
+</head>
+<style>
+
+    .main{width: 100%;height: 100%;background:url(images/bg3.jpg);  background-repeat: no-repeat;background-size: cover;};
+</style>
+
+<body class="main">
+
+
+    <form>
+        <div>账号注册</div>
+        <table>
+            <tr>
+                <td><span>用户名</span></td>
+                <td>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" required />
+                </td>
+            </tr>
+            <tr>
+                <td><span>登录密码</span></td>
+                <td>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" required />
+                </td>
+            </tr>
+
+            <tr>
+                <td><span>登录密码</span></td>
+                <td>
+                    <input   type="password" id="checkpwd" name="checkpwd" placeholder="请再次输入密码" required />
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="2">
+                    <input type="button" onclick="log()" value="确认" />
+                </td>
+            </tr>
+            <div class="return"></div>
+            <tr>
+                <a href="login.html">前往登陆</a>
+            </tr>
+        </table>
+    </form>
+
+
+
+    <script>
+        function log() {
+            var username = document.getElementById('username').value;
+            var password = document.getElementById('password').value;
+            var checkpwd = document.getElementById('checkpwd').value;
+
+
+            $.ajax({
+                type: "POST",
+                url: "signup.php",
+                data: {
+                    username: username,
+                    password: password,
+                    checkpwd: checkpwd
+                },
+
+                dataType: "json",
+
+                success: function (mydata) {
+
+                    if (mydata.errcode == 19 || mydata.errcode == 13 || mydata.errcode == 15 || mydata.errcode == 8) {
+                        alert(mydata.errmsg)
+                    } else if (mydata.errcode == 0) {
+                        window.location.href = "login.html";
+                    }
+
+
+                },
+                error: function () {
+                    alert("出现异常")
+
+                }
+            });
+
+
+
+        }
+    </script>
+
+</body>
+
+</html>
